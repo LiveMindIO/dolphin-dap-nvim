@@ -1,7 +1,11 @@
-# Neovim Client Setup
+# Dolphin DAP for Neovim
 
 [nvim-dap](https://github.com/mfussenegger/nvim-dap) can connect to a running Dolphin
-server directly or use the bundled integration to start Dolphin.
+server directly or use this plugin to start Dolphin.
+
+The canonical repository is hosted on
+[Forgejo](https://git.jacoby6000.com/LiveMindIO/dolphin-dap-nvim) and mirrored to
+[GitHub](https://github.com/LiveMindIO/dolphin-dap-nvim).
 
 ## Requirements
 
@@ -9,8 +13,7 @@ Install `nvim-dap` with your preferred plugin manager.
 
 ## Basic Attach Configuration
 
-This minimal configuration connects to Dolphin on TCP port `5678` and does not require
-the bundled integration:
+This minimal configuration connects to Dolphin on TCP port `5678` without this plugin:
 
 ```lua
 local dap = require("dap")
@@ -33,23 +36,27 @@ for _, language in ipairs({ "c", "cpp" }) do
 end
 ```
 
-Start Dolphin using one of the commands in
-[`Running the server`](../README.md#running-the-server), then use `:DapContinue` and
-select **Attach to Dolphin**.
+Start Dolphin using one of the commands in the
+[server documentation](https://github.com/LiveMindIO/dolphin-dap/blob/master/Tools/dap/README.md#running-the-server),
+then use `:DapContinue` and select **Attach to Dolphin**.
 
-## Bundled Integration
+## Plugin Installation
 
-The bundled integration can start Dolphin, resolve source paths, and create several
+The plugin can start Dolphin, resolve source paths, and create several
 launch and attach configurations. Its optional default debugger interface uses
 [`nvim-dap-ui`](https://github.com/rcarriga/nvim-dap-ui) and
 [`nvim-nio`](https://github.com/nvim-neotest/nvim-nio).
 
-Add `Tools/dap/nvim` from this Dolphin checkout to Neovim's runtime path, then initialize
-the integration:
+With `lazy.nvim`:
 
 ```lua
-vim.opt.rtp:append("/path/to/dolphin/Tools/dap/nvim")
-require("dolphin-dap").setup()
+{
+  "https://git.jacoby6000.com/LiveMindIO/dolphin-dap-nvim",
+  dependencies = { "mfussenegger/nvim-dap" },
+  config = function()
+    require("dolphin-dap").setup()
+  end,
+}
 ```
 
 Use your preferred plugin manager or Neovim configuration layout. No particular keymaps
@@ -108,10 +115,10 @@ need to inspect without optimization; unrelated files can remain optimized.
 Use `:DapContinue` or another standard `nvim-dap` command and select one of the registered
 Dolphin configurations. Define keymaps using the normal `nvim-dap` functions if desired.
 
-To start Dolphin separately, use a command from the main
-[`Running the server`](../README.md#running-the-server) guide, then select the Dolphin
-attach configuration in Neovim. `:DolphinDapCmd` prints and copies a command generated
-from the current `.dolphin-dap.lua` file.
+To start Dolphin separately, use a command from the
+[server documentation](https://github.com/LiveMindIO/dolphin-dap/blob/master/Tools/dap/README.md#running-the-server),
+then select the Dolphin attach configuration in Neovim. `:DolphinDapCmd` prints and
+copies a command generated from the current `.dolphin-dap.lua` file.
 
 The configuration supports:
 
@@ -128,5 +135,5 @@ The configuration supports:
 - `enable_cheats`: whether saved cheats are enabled for this launch.
 - `cwd`: optional Dolphin working directory.
 
-See [Source debugging with DWARF](../README.md#source-debugging-with-dwarf) for the
-difference between executed and sidecar ELFs.
+See [Source debugging with DWARF](https://github.com/LiveMindIO/dolphin-dap/blob/master/Tools/dap/README.md#source-debugging-with-dwarf)
+for the difference between executed and sidecar ELFs.
