@@ -3,8 +3,7 @@
 [nvim-dap](https://github.com/mfussenegger/nvim-dap) can connect to a running Dolphin
 server directly or use this plugin to start Dolphin.
 
-The canonical repository is hosted on
-[Forgejo](https://git.jacoby6000.com/LiveMindIO/dolphin-dap-nvim) and mirrored to
+Development is hosted on Forgejo and mirrored publicly to
 [GitHub](https://github.com/LiveMindIO/dolphin-dap-nvim).
 
 ## Requirements
@@ -51,7 +50,7 @@ With `lazy.nvim`:
 
 ```lua
 {
-  "https://git.jacoby6000.com/LiveMindIO/dolphin-dap-nvim",
+  "LiveMindIO/dolphin-dap-nvim",
   dependencies = { "mfussenegger/nvim-dap" },
   config = function()
     require("dolphin-dap").setup()
