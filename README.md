@@ -119,6 +119,26 @@ To start Dolphin separately, use a command from the
 then select the Dolphin attach configuration in Neovim. `:DolphinDapCmd` prints and
 copies a command generated from the current `.dolphin-dap.lua` file.
 
+Every Dolphin debugging launch needs this CLI override:
+
+```bash
+-C Dolphin.Interface.DebugModeEnabled=True
+```
+
+When starting Dolphin separately, add it to the command printed by `:DolphinDapCmd`
+before attaching. A DAP port or socket alone does not enable core breakpoint checks
+and debugger-aware stepping. The plugin's generated launch command does not currently
+include this override. For plugin-managed launches, enable it in the `Dolphin.ini`
+used by that process:
+
+```ini
+[Interface]
+DebugModeEnabled = True
+```
+
+The CLI override is launch-local; the INI setting persists. Neither opens GUI panes
+in the NoGUI build.
+
 The configuration supports:
 
 - `dolphin`: path to `dolphin-emu-nogui`.
