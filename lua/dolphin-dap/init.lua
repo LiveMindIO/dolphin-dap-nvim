@@ -12,7 +12,7 @@
 ---     program = "~/games/melee.iso",
 ---     elf_file = "~/melee/build/GALE01/main.elf",
 ---     replace_disc_executable = true,
----     source_paths = { "~/melee/src", "~/melee/extern/dolphin/src" },
+---     source_paths = { "~/melee/src", "~/melee/libs/dolphin/src" },
 ---     enable_cheats = false,
 ---     port = 5678,
 ---   }
@@ -91,7 +91,9 @@ local function normalize_project(project)
   local dolphin = expand_path(project.dolphin) or "dolphin-emu-nogui"
   local dolphin_gui = expand_path(project.dolphin_gui)
   if not dolphin_gui then
-    if dolphin:match("-nogui$") then
+    if dolphin:lower():match("-nogui%.exe$") then
+      dolphin_gui = dolphin:sub(1, -11) .. ".exe"
+    elseif dolphin:match("-nogui$") then
       dolphin_gui = (dolphin:gsub("-nogui$", ""))
     else
       dolphin_gui = "dolphin-emu"
@@ -213,6 +215,8 @@ local function build_launch_args(project, target, port)
     "-C",
     "Dolphin.Interface.DebugModeEnabled=True",
     "-C",
+    "Dolphin.General.DAPSocket=",
+    "-C",
     string.format(DAP_PORT_CONFIG, port),
   }
 
@@ -231,14 +235,14 @@ local function build_launch_args(project, target, port)
   end
 
   local replace_disc_executable = project.replace_disc_executable
+  if replace_disc_executable == nil then
+    replace_disc_executable = true
+  end
   if project.disc and project.disc ~= "" and project.disc ~= project.program then
     vim.list_extend(args, {
       "-C",
       "Dolphin.Core.DefaultISO=" .. project.disc,
     })
-    if replace_disc_executable == nil then
-      replace_disc_executable = true
-    end
   end
   if replace_disc_executable ~= nil then
     vim.list_extend(args, {
@@ -300,7 +304,8 @@ function M.register_adapter()
 
       callback({
         type = "server",
-        host = project.host,
+        -- Spawned Dolphin listens locally; `host` is only for an existing remote server.
+        host = "127.0.0.1",
         port = port,
         id = "dolphin-dap",
         executable = {

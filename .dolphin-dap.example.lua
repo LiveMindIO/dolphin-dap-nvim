@@ -6,7 +6,7 @@ return {
   cwd = "~/projects/melee",
   source_paths = {
     "~/projects/melee/src",
-    "~/projects/melee/extern/dolphin/src",
+    "~/projects/melee/libs/dolphin/src",
   },
   enable_cheats = false,
   port = 5678,
