@@ -1,6 +1,7 @@
 --- Dolphin GameCube/Wii DAP integration for nvim-dap.
 ---
 --- Dolphin exposes a DAP server (not a separate adapter binary). Start it with
+--- `-C Dolphin.Interface.DebugModeEnabled=True` and
 --- `-C Dolphin.General.DAPPort=5678` (not `Main.…` — that is silently ignored),
 --- then attach from Neovim — or let nvim-dap spawn dolphin-emu-nogui with
 --- `--platform headless`, nogui + x11/win32 for video, or dolphin-emu (Qt).
@@ -8,9 +9,9 @@
 --- Per-project settings: add `.dolphin-dap.lua` at the repo root, e.g.
 ---   return {
 ---     dolphin = "~/projects/dolphin-dap/build/Binaries/dolphin-emu-nogui",
----     program = "~/melee/build/GALE01/main.elf", -- ELF to execute; supplies symbols/DWARF
----     disc = "~/games/melee.iso", -- bootstrap/filesystem source; its DOL is not executed
----     elf = "~/melee/build/GALE01/main.elf", -- advanced metadata-only sidecar mode
+---     program = "~/games/melee.iso",
+---     elf_file = "~/melee/build/GALE01/main.elf",
+---     replace_disc_executable = true,
 ---     source_paths = { "~/melee/src", "~/melee/extern/dolphin/src" },
 ---     enable_cheats = false,
 ---     port = 5678,
@@ -19,10 +20,13 @@
 local PROJECT_FILE = ".dolphin-dap.lua"
 local DAP_PORT_CONFIG = "Dolphin.General.DAPPort=%s"
 local SOURCE_PATHS_CONFIG = "Dolphin.Debug.SourcePaths=%s"
+local ELF_FILE_CONFIG = "Dolphin.Debug.ELFFile=%s"
+local REPLACE_DISC_EXECUTABLE_CONFIG = "Dolphin.Debug.ReplaceDiscExecutable=%s"
 local DOLPHIN_FILETYPES = { "c", "cpp" }
 
 local M = {}
 M._setup_done = false
+M._warned_deprecated_elf = false
 
 local function notify(msg, level)
   vim.notify(msg, level or vim.log.levels.INFO, { title = "dolphin-dap" })
@@ -80,6 +84,10 @@ end
 
 local function normalize_project(project)
   project = project or {}
+  if project.elf ~= nil and not M._warned_deprecated_elf then
+    notify("`elf` is deprecated; use `elf_file` instead", vim.log.levels.WARN)
+    M._warned_deprecated_elf = true
+  end
   local dolphin = expand_path(project.dolphin) or "dolphin-emu-nogui"
   local dolphin_gui = expand_path(project.dolphin_gui)
   if not dolphin_gui then
@@ -95,7 +103,9 @@ local function normalize_project(project)
     -- `iso` remains accepted for existing project files; `program` also supports ELF/DOL.
     program = expand_path(project.program or project.iso),
     disc = expand_path(project.disc),
-    elf = expand_path(project.elf),
+    -- `elf` is retained for project files created before Dolphin unified its ELF setting.
+    elf_file = expand_path(project.elf_file or project.elf),
+    replace_disc_executable = project.replace_disc_executable,
     entrypoints = expand_path(project.entrypoints),
     port = project.port or 5678,
     socket = expand_path(project.socket),
@@ -201,6 +211,8 @@ local function build_launch_args(project, target, port)
 
   local args = {
     "-C",
+    "Dolphin.Interface.DebugModeEnabled=True",
+    "-C",
     string.format(DAP_PORT_CONFIG, port),
   }
 
@@ -211,12 +223,27 @@ local function build_launch_args(project, target, port)
     })
   end
 
+  if project.elf_file and project.elf_file ~= "" then
+    vim.list_extend(args, {
+      "-C",
+      string.format(ELF_FILE_CONFIG, project.elf_file),
+    })
+  end
+
+  local replace_disc_executable = project.replace_disc_executable
   if project.disc and project.disc ~= "" and project.disc ~= project.program then
     vim.list_extend(args, {
       "-C",
       "Dolphin.Core.DefaultISO=" .. project.disc,
+    })
+    if replace_disc_executable == nil then
+      replace_disc_executable = true
+    end
+  end
+  if replace_disc_executable ~= nil then
+    vim.list_extend(args, {
       "-C",
-      "Dolphin.Core.BootExecutableWithDefaultDisc=true",
+      string.format(REPLACE_DISC_EXECUTABLE_CONFIG, tostring(replace_disc_executable)),
     })
   end
   if project.enable_cheats ~= nil then
@@ -231,12 +258,8 @@ local function build_launch_args(project, target, port)
     vim.list_extend(args, { "--platform", target.platform })
   end
 
-  if project.elf and project.elf ~= "" and project.elf ~= project.program then
-    vim.list_extend(args, { "--debug-elf", project.elf })
-  end
-
   local entrypoints = project.entrypoints
-  local debug_layout = project.elf
+  local debug_layout = project.elf_file
   if not debug_layout or debug_layout == "" then
     debug_layout = project.program:lower():match("%.elf$") and project.program or nil
   end
@@ -356,7 +379,8 @@ function M.build_configurations(project)
       host = project.host,
       program = project.program,
       disc = project.disc,
-      elf = project.elf,
+      elf_file = project.elf_file,
+      replace_disc_executable = project.replace_disc_executable,
       cwd = project.cwd,
       source_paths = project.source_paths,
     },
@@ -370,7 +394,8 @@ function M.build_configurations(project)
       host = project.host,
       program = project.program,
       disc = project.disc,
-      elf = project.elf,
+      elf_file = project.elf_file,
+      replace_disc_executable = project.replace_disc_executable,
       cwd = project.cwd,
       source_paths = project.source_paths,
     },
@@ -382,7 +407,8 @@ function M.build_configurations(project)
       platform = "headless",
       program = project.program,
       disc = project.disc,
-      elf = project.elf,
+      elf_file = project.elf_file,
+      replace_disc_executable = project.replace_disc_executable,
       cwd = project.cwd,
       source_paths = project.source_paths,
     },
@@ -394,7 +420,8 @@ function M.build_configurations(project)
       platform = video_platform,
       program = project.program,
       disc = project.disc,
-      elf = project.elf,
+      elf_file = project.elf_file,
+      replace_disc_executable = project.replace_disc_executable,
       cwd = project.cwd,
       source_paths = project.source_paths,
     },
@@ -405,7 +432,8 @@ function M.build_configurations(project)
       nogui = false,
       program = project.program,
       disc = project.disc,
-      elf = project.elf,
+      elf_file = project.elf_file,
+      replace_disc_executable = project.replace_disc_executable,
       cwd = project.cwd,
       source_paths = project.source_paths,
     },
@@ -516,7 +544,7 @@ function M.setup(opts)
       notify(string.format("program: %s", project.program))
     else
       notify(
-        "no `.dolphin-dap.lua` found — set `program` to the ELF and `disc` to the ISO for launch",
+        "no `.dolphin-dap.lua` found — set `program` to the ISO and `elf_file` to the debug ELF",
         vim.log.levels.WARN
       )
     end

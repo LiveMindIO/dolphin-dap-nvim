@@ -1,10 +1,12 @@
 return {
-  dolphin = "/path/to/dolphin-emu-nogui",
-  program = "/path/to/main.elf",
-  disc = "/path/to/game.iso",
+  dolphin = "~/projects/dolphin-dap/build/Binaries/dolphin-emu-nogui",
+  program = "~/games/melee.iso",
+  elf_file = "~/projects/melee/build/GALE01/main.elf",
+  replace_disc_executable = true,
+  cwd = "~/projects/melee",
   source_paths = {
-    "/path/to/project/src",
-    "/path/to/project/extern/dolphin/src",
+    "~/projects/melee/src",
+    "~/projects/melee/extern/dolphin/src",
   },
   enable_cheats = false,
   port = 5678,
