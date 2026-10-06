@@ -91,6 +91,10 @@ Use absolute paths such as `C:/tools/dolphin-dap/DolphinNoGUI.exe`.
 - Run `:lua require("dolphin-dap").attach()` to attach to Dolphin on the configured port.
 - Run `:DolphinDapCmd` to print and copy the equivalent Dolphin command.
 
+The Qt launch requires a separate Qt-enabled Dolphin build. For build instructions
+and using its native source debugger, see the
+[Qt source-debugging guide](https://github.com/LiveMindIO/dolphin-dap/blob/master/Tools/dap/qt-source-debugging.md).
+
 ### First source breakpoint
 
 1. Open a source file from the checkout used to build the ELF. Move to an executable
